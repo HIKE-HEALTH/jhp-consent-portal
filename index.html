@@ -253,6 +253,23 @@
   .topbar .admin img.admin-ic{width:26px;height:26px;border-radius:50%}
   .nav-item img.nav-ic{width:20px;height:20px;object-fit:contain;flex:none}
   .search-input img.search-ic{width:16px;height:16px;flex:none;opacity:.8}
+
+  /* guided tour */
+  #tour-overlay{position:fixed;inset:0;z-index:200}
+  .tour-dim{position:fixed;inset:0;background:rgba(20,25,45,.6)}
+  .tour-spot{position:fixed;border-radius:10px;box-shadow:0 0 0 9999px rgba(20,25,45,.6);border:2px solid var(--accent-bright);transition:all .2s ease;pointer-events:none}
+  .tour-tip{position:fixed;width:330px;max-width:calc(100vw - 24px);background:#fff;border-radius:14px;box-shadow:var(--shadow-lg);padding:18px;z-index:201}
+  .tour-tip.tour-center{left:50%!important;top:50%!important;transform:translate(-50%,-50%)}
+  .tour-tip-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:7px}
+  .tour-tip-head strong{font-size:16px;color:#1f2430;line-height:1.3}
+  .tour-x{border:none;background:none;font-size:20px;line-height:1;color:var(--muted-2);cursor:pointer;padding:0 2px}
+  .tour-tip p{margin:0 0 14px;font-size:14px;line-height:1.5;color:#4a515e}
+  .tour-foot{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .tour-prog{font-size:12px;color:var(--muted-2);font-weight:700;letter-spacing:.3px}
+  .tour-btns{display:flex;gap:8px}
+  .tour-b{border:none;border-radius:20px;padding:8px 18px;font-size:14px;font-weight:700;background:var(--navy);color:#fff;cursor:pointer}
+  .tour-b:hover{background:var(--navy-deep)}
+  .tour-b.ghost{background:#fff;color:var(--accent);border:1.5px solid var(--accent)}
 </style>
 </head>
 <body>
@@ -293,6 +310,8 @@ const ICON = {
   caretUp: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>`,
   circleCheck: `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#2fb24a"/><path d="M7.5 12.5l3 3 6-6.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   x: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>`,
+  tour: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polygon points="15.5 8.5 10.5 10.5 8.5 15.5 13.5 13.5" fill="currentColor" stroke="none"/></svg>`,
+  reset: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>`,
   family: `<svg viewBox="0 0 200 200" fill="#ffffff"><circle cx="60" cy="60" r="22"/><circle cx="120" cy="50" r="26"/><circle cx="150" cy="95" r="16"/><rect x="34" y="86" width="52" height="80" rx="24"/><rect x="92" y="80" width="58" height="92" rx="28"/><rect x="138" y="114" width="34" height="56" rx="16"/></svg>`
 };
 
@@ -370,6 +389,8 @@ function shell(inner){
       <aside class="sidebar">
         <button class="nav-item ${state.view==='home'?'active':''}" data-action="home"><img class="nav-ic" src="${IMG.home}" alt=""><span>Home</span></button>
         <button class="nav-item muted" data-action="faq">${ICON.faq}<span>FAQ</span></button>
+        <button class="nav-item" data-action="tour-start">${ICON.tour}<span>Guided tour</span></button>
+        <button class="nav-item" data-action="reset" data-tour="reset">${ICON.reset}<span>Reset demo</span></button>
         <div class="spacer"></div>
         <button class="nav-item nav-logout" data-action="logout"><img class="nav-ic" src="${IMG.logout}" alt=""><span>Logout</span></button>
       </aside>
@@ -422,7 +443,7 @@ function viewHome(){
       </div>
     </div>
     <h2 class="section" style="margin-top:6px">Member search</h2>
-    <div class="search-row">
+    <div class="search-row" data-tour="search">
       <div class="search-input"><img class="search-ic" src="${IMG.search}" alt="">
         <input id="m-search" placeholder="Search by member ID, name or phone number" value="${esc(state.search)}" />
       </div>
@@ -434,7 +455,7 @@ function viewHome(){
 function memberRow(m,q){
   return `<div class="member-row ${q&&m.name.toLowerCase().includes(q.toLowerCase())?'hl':''}">
     <div class="who"><span class="nm">${highlight(m.name,q)}</span> <span class="meta">· ${esc(m.id)} · ${esc(m.dob)}</span></div>
-    <button class="link-accent" data-action="profile" data-id="${m.id}">View profile</button>
+    <button class="link-accent" data-action="profile" data-id="${m.id}" data-tour="view-profile">View profile</button>
   </div>`;
 }
 
@@ -468,7 +489,7 @@ function viewProfile(){
       <h1>${esc(m.name)}'s profile</h1>
     </div>
 
-    <div class="card info-card">
+    <div class="card info-card" data-tour="info">
       <div class="info-grid">
         <div class="row1 cell"><div class="k">Name</div><div class="v">${esc(m.name)}</div></div>
         <div class="row1 cell"><div class="k">Member ID</div><div class="v">${esc(m.id)}</div></div>
@@ -480,7 +501,7 @@ function viewProfile(){
     </div>
 
     <h2 class="section">Member consents</h2>
-    <div class="consent-card">
+    <div class="consent-card" data-tour="provider-consent">
       <div class="ct">
         <h3>Share data with healthcare providers</h3>
         <p>Manage how ${esc(m.name)}'s health information is shared with in-network providers.</p>
@@ -491,7 +512,7 @@ function viewProfile(){
         <button class="link-accent" data-action="provider">Review consent</button>
       </div>
     </div>
-    <div class="consent-card">
+    <div class="consent-card" data-tour="transfer-consent">
       <div class="ct">
         <h3>Transfer data from other health plans</h3>
         <p>Manage how ${esc(m.name)}'s health information is transferred from other health plans.</p>
@@ -503,7 +524,7 @@ function viewProfile(){
       </div>
     </div>
 
-    <h2 class="section">Manage member consents</h2>
+    <h2 class="section" data-tour="manage">Manage member consents</h2>
     <div class="plan-search-row">
       <div class="search-input"><img class="search-ic" src="${IMG.search}" alt="">
         <input id="p-search" placeholder="Search by plans" value="${esc(state.planSearch)}" />
@@ -730,10 +751,23 @@ document.addEventListener('click', e=>{
 
   switch(a){
     /* nav */
-    case 'signin': go('home'); break;
+    case 'signin': go('home'); if(!TOUR.seen){ setTimeout(tourStart,350); } break;
     case 'home': resetProfileDrafts(); go('home'); break;
-    case 'logout': MEMBERS=freshMembers(); Object.assign(state,{view:'login',memberId:null,search:'',searchSubmitted:false}); render(); break;
+    case 'logout': tourEnd(); MEMBERS=freshMembers(); Object.assign(state,{view:'login',memberId:null,search:'',searchSubmitted:false}); render(); break;
     case 'faq': toast('FAQ','Help center is not part of this demo.'); break;
+
+    /* demo controls */
+    case 'reset':
+      MEMBERS=freshMembers();
+      Object.assign(state,{search:'',searchSubmitted:false,planSearch:'',reviewOpen:null,providerDraft:null,providerAttest:false,ddOpen:false,transferSel:[],transferAttest:false});
+      if(state.view!=='login' && state.view!=='home') state.view='home';
+      closeModal(); render();
+      toast('Demo reset','Sample data restored to its original state.');
+      break;
+    case 'tour-start': tourStart(); break;
+    case 'tour-next': tourNext(); break;
+    case 'tour-prev': tourPrev(); break;
+    case 'tour-end': tourEnd(); break;
 
     /* search */
     case 'do-search': { const i=document.getElementById('m-search'); state.search=i?i.value:''; state.searchSubmitted=true; render(); break; }
@@ -836,6 +870,63 @@ function liveSearchUpdate(){
 
 function resetProfileDrafts(){ state.reviewOpen=null; state.planSearch=''; state.providerDraft=null; state.providerAttest=false; state.ddOpen=false; state.transferSel=[]; state.transferAttest=false; }
 function today(){ const d=new Date(); return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+
+/* ---------- Guided tour ---------- */
+const TOUR = {
+  seen:false, active:false, i:0,
+  steps:[
+    { center:true, title:'Welcome to the consent portal', body:'This quick tour shows how a customer-service rep manages member data-sharing consent under CMS-0057. Use Next and Back to move through it — you can end anytime.' },
+    { view:'home', sel:'[data-tour="search"]', place:'bottom', title:'1 · Find a member', body:'Search by member ID, name, or phone number. Recent members are listed just below for quick access.' },
+    { view:'home', sel:'[data-tour="view-profile"]', place:'left', title:'2 · Open a profile', body:'Select &ldquo;View profile&rdquo; to pull up a member and start assisting them.' },
+    { view:'profile', sel:'[data-tour="info"]', place:'bottom', title:'3 · Member details', body:'A member&rsquo;s identity and contact information appear at the top of their profile.' },
+    { view:'profile', sel:'[data-tour="provider-consent"]', place:'bottom', title:'4 · Share with providers (opt-out)', body:'Under CMS-0057&rsquo;s Provider Access rule, members share data with in-network providers by default — and may choose to opt OUT here.' },
+    { view:'profile', sel:'[data-tour="transfer-consent"]', place:'top', title:'5 · Transfer from other plans (opt-in)', body:'Under the Payer-to-Payer rule, members must opt IN before JHP requests their records from a previous health plan.' },
+    { view:'profile', sel:'[data-tour="manage"]', place:'bottom', title:'6 · Manage each plan', body:'Prior plans are grouped by Opted-in, Opted-out, and Expired. Use &ldquo;Review Consent&rdquo; to see history or opt a plan out — every change requires a rep attestation that the member requested it.' },
+    { view:'home', sel:'[data-tour="reset"]', place:'right', title:'7 · Reset the demo', body:'Practiced enough? Click &ldquo;Reset demo&rdquo; any time to restore the original sample data and start fresh.' },
+    { center:true, title:'You&rsquo;re all set', body:'That&rsquo;s the tour. Click around freely — this is a training environment with fictional data only, so nothing you do affects real members.' }
+  ],
+  prep(s){
+    if(s.view==='home'){ state.view='home'; }
+    else if(s.view==='profile'){ state.memberId='123456'; state.reviewOpen=null; state.planSearch=''; state.view='profile'; }
+    render();
+  }
+};
+function tourStart(){ TOUR.active=true; TOUR.seen=true; TOUR.i=0; tourShow(); }
+function tourNext(){ if(TOUR.i>=TOUR.steps.length-1){ tourEnd(); return; } TOUR.i++; tourShow(); }
+function tourPrev(){ if(TOUR.i>0){ TOUR.i--; tourShow(); } }
+function tourEnd(){ TOUR.active=false; const o=document.getElementById('tour-overlay'); if(o) o.remove(); }
+function tourShow(){
+  const s=TOUR.steps[TOUR.i];
+  TOUR.prep(s);
+  let o=document.getElementById('tour-overlay');
+  if(!o){ o=document.createElement('div'); o.id='tour-overlay'; document.body.appendChild(o); }
+  const total=TOUR.steps.length;
+  const foot=`<div class="tour-foot"><span class="tour-prog">${TOUR.i+1} / ${total}</span><div class="tour-btns">${TOUR.i>0?'<button class="tour-b ghost" data-action="tour-prev">Back</button>':''}<button class="tour-b" data-action="tour-next">${TOUR.i===total-1?'Finish':'Next'}</button></div></div>`;
+  const card=`<div class="tour-tip-head"><strong>${s.title}</strong><button class="tour-x" data-action="tour-end" aria-label="End tour">&times;</button></div><p>${s.body}</p>${foot}`;
+  const el = (!s.center && s.sel) ? document.querySelector(s.sel) : null;
+  if(el){
+    if(el.scrollIntoView){ try{ el.scrollIntoView({block:'center',inline:'nearest'}); }catch(_){} }
+    const r=el.getBoundingClientRect(); const pad=8;
+    o.innerHTML=`<div class="tour-spot" style="left:${r.left-pad}px;top:${r.top-pad}px;width:${r.width+pad*2}px;height:${r.height+pad*2}px"></div><div class="tour-tip" id="tour-tip">${card}</div>`;
+    tourPlace(document.getElementById('tour-tip'), r, s.place||'bottom');
+  } else {
+    o.innerHTML=`<div class="tour-dim"></div><div class="tour-tip tour-center" id="tour-tip">${card}</div>`;
+  }
+}
+function tourPlace(tip,r,place){
+  const m=14, tw=tip.offsetWidth, th=tip.offsetHeight, vw=window.innerWidth, vh=window.innerHeight;
+  let top,left;
+  if(place==='top'){ top=r.top-th-m; left=r.left; }
+  else if(place==='left'){ top=r.top; left=r.left-tw-m; }
+  else if(place==='right'){ top=r.top; left=r.right+m; }
+  else { top=r.bottom+m; left=r.left; }
+  if(place!=='top' && top+th>vh-10){ top=r.top-th-m; }
+  if(top<10) top=10;
+  if(left+tw>vw-12) left=vw-tw-12;
+  if(left<12) left=12;
+  tip.style.top=top+'px'; tip.style.left=left+'px';
+}
+window.addEventListener('resize', ()=>{ if(TOUR.active) tourShow(); });
 
 /* ---------- Boot ---------- */
 render();
