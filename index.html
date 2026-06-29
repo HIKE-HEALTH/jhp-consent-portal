@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Jefferson Health Plans — Member Consent Portal</title>
+<meta name="description" content="Internal CSR demo portal for managing member data-sharing consents under CMS-0057 (Interoperability & Prior Authorization Final Rule)." />
+<style>
+  :root{
+    --navy:#1d2b5e;
+    --navy-deep:#16224a;
+    --navy-700:#26336a;
+    --slate:#4a5578;
+    --accent:#a01d8b;          /* magenta links / accents */
+    --accent-bright:#c2228f;   /* toggle on */
+    --accent-soft:#f7eef5;     /* selected row / card tint */
+    --accent-soft-2:#fbf4f9;
+    --green:#2fb24a;
+    --red:#df322e;
+    --amber:#c98a00;
+    --bg:#f5f6f9;
+    --card:#ffffff;
+    --border:#e8e8ef;
+    --border-2:#eceaf1;
+    --text:#1f2430;
+    --muted:#6c7280;
+    --muted-2:#9aa0ab;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(20,25,45,.05), 0 8px 24px rgba(20,25,45,.06);
+    --shadow-lg:0 12px 40px rgba(20,25,45,.18);
+    --font:'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:var(--font);color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased;}
+  button{font-family:inherit;cursor:pointer}
+  a{color:var(--accent);text-decoration:none}
+  .hidden{display:none !important}
+
+  /* ---------- App shell ---------- */
+  .app{min-height:100vh;display:flex;flex-direction:column}
+  .topbar{height:72px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:30}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand .logo{width:34px;height:38px;flex:none}
+  .brand .wordmark{line-height:1.05}
+  .brand .wordmark b{display:block;color:var(--navy);font-size:16px;font-weight:800;letter-spacing:.2px}
+  .brand .wordmark span{display:block;color:var(--navy);font-size:13px;font-weight:600;opacity:.85}
+  .topbar .admin{display:flex;align-items:center;gap:9px;color:#3a4150;font-weight:500}
+  .topbar .admin svg{width:26px;height:26px}
+
+  .body{flex:1;display:flex}
+  .sidebar{width:240px;flex:none;background:#fff;border-right:1px solid var(--border);padding:22px 0;display:flex;flex-direction:column;min-height:calc(100vh - 72px)}
+  .nav-item{display:flex;align-items:center;gap:13px;padding:13px 26px;color:var(--navy);font-weight:600;font-size:15px;border:none;background:none;width:100%;text-align:left}
+  .nav-item svg{width:20px;height:20px}
+  .nav-item.muted{color:var(--muted-2);font-weight:500}
+  .nav-item:hover{background:#f6f7fb}
+  .nav-item.active{background:#f3f5fb}
+  .sidebar .spacer{flex:1}
+  .nav-logout{color:var(--muted);font-weight:500}
+
+  .main{flex:1;min-width:0;padding:34px 40px 80px;max-width:1180px;margin:0 auto;width:100%}
+
+  /* ---------- Common ---------- */
+  .page-head{display:flex;align-items:center;gap:14px;margin-bottom:26px}
+  .back-btn{width:40px;height:40px;border-radius:9px;border:1px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;color:#2a3040}
+  .back-btn:hover{background:#f4f5f8}
+  .page-head h1{font-size:26px;margin:0;font-weight:800;letter-spacing:.2px}
+  h2.section{font-size:21px;font-weight:800;margin:30px 0 16px}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 16px}
+
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+
+  .btn{border:none;border-radius:26px;padding:13px 26px;font-size:15px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+  .btn-primary{background:var(--navy);color:#fff}
+  .btn-primary:hover{background:var(--navy-deep)}
+  .btn-primary:disabled,.btn-disabled{background:var(--slate);color:#e9ebf2;cursor:not-allowed;opacity:.85}
+  .btn-ghost{background:#fff;color:var(--accent);border:1.5px solid var(--accent)}
+  .btn-ghost:hover{background:var(--accent-soft)}
+  .btn-sm{padding:9px 20px;font-size:14px}
+  .link-accent{color:var(--accent);font-weight:700;background:none;border:none;font-size:15px}
+  .link-accent:hover{text-decoration:underline}
+
+  .pill{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#2a2f3a}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+  .dot.green{background:var(--green)}
+  .dot.red{background:var(--red)}
+  .dot.amber{background:var(--amber)}
+
+  /* checkbox */
+  .chk{display:inline-flex;align-items:flex-start;gap:12px;font-size:15px;color:#2c3340;cursor:pointer;line-height:1.4}
+  .chk input{position:absolute;opacity:0;width:0;height:0}
+  .chk .box{width:24px;height:24px;border-radius:6px;border:2px solid #c7cad3;background:#fff;flex:none;display:flex;align-items:center;justify-content:center;transition:.12s}
+  .chk input:checked + .box{background:var(--green);border-color:var(--green)}
+  .chk input:checked + .box svg{opacity:1}
+  .chk .box svg{width:14px;height:14px;opacity:0;color:#fff}
+
+  /* toggle */
+  .toggle{width:50px;height:28px;border-radius:16px;background:#d7d9e0;position:relative;border:none;flex:none;transition:.15s}
+  .toggle .knob{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:.15s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .toggle.on{background:var(--accent-bright)}
+  .toggle.on .knob{left:25px}
+
+  /* ---------- Login ---------- */
+  .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1d2b5e 0%,#243a7e 100%);padding:24px}
+  .login-card{background:#fff;border-radius:18px;box-shadow:var(--shadow-lg);width:100%;max-width:420px;padding:38px 36px}
+  .login-card .brand{justify-content:center;margin-bottom:8px}
+  .login-card h1{font-size:22px;text-align:center;margin:14px 0 4px}
+  .login-card p.tag{text-align:center;color:var(--muted);font-size:14px;margin:0 0 26px}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:13px;font-weight:600;color:#3a414f;margin-bottom:7px}
+  .field input{width:100%;height:46px;border:1px solid var(--border);border-radius:10px;padding:0 14px;font-size:15px;background:#fbfbfd}
+  .field input:focus{outline:none;border-color:var(--navy);background:#fff}
+  .login-card .btn{width:100%;margin-top:6px}
+  .login-foot{text-align:center;color:var(--muted-2);font-size:12px;margin-top:18px;line-height:1.5}
+
+  /* ---------- Hero / search ---------- */
+  .hero{position:relative;border-radius:var(--radius);overflow:hidden;height:170px;background:linear-gradient(110deg,#1d2b5e 0%,#2b3f82 55%,#4a63ad 100%);margin-bottom:30px}
+  .hero .hero-copy{position:absolute;left:34px;top:34px;color:#fff;z-index:2;max-width:360px}
+  .hero .hero-copy .hi{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:800;margin-bottom:8px}
+  .hero .hero-copy .hi svg{width:24px;height:24px}
+  .hero .hero-copy p{margin:0;font-size:15px;opacity:.92;line-height:1.4}
+  .hero .deco{position:absolute;right:-30px;top:-30px;width:340px;height:340px;opacity:.16}
+  .hero .wave{position:absolute;bottom:-1px;left:0;width:100%;display:block}
+
+  .search-row{display:flex;gap:14px;margin-bottom:8px}
+  .search-input{flex:1;display:flex;align-items:center;gap:10px;height:50px;border:1px solid var(--border);border-radius:10px;background:#fff;padding:0 16px}
+  .search-input svg{width:18px;height:18px;color:var(--muted-2);flex:none}
+  .search-input input{flex:1;border:none;outline:none;font-size:15px;background:none;color:var(--text)}
+  .search-btn{padding:0 40px;border-radius:10px}
+  .results-head{display:flex;align-items:center;justify-content:space-between;margin:22px 2px 10px}
+  .results-head .label{font-weight:700;color:#2c313c}
+  .results-head .label b{color:var(--accent)}
+
+  .member-row{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:12px;transition:.12s}
+  .member-row:hover{border-color:#d8d3e2;box-shadow:var(--shadow)}
+  .member-row.hl{background:var(--accent-soft);border-color:#ecd6e6}
+  .member-row .who{font-size:15px;color:#2b303b}
+  .member-row .who .nm{font-weight:700}
+  .member-row .who .meta{color:var(--muted)}
+  .member-row mark{background:#f3d4ea;color:var(--accent);padding:0 2px;border-radius:3px}
+
+  /* ---------- Profile ---------- */
+  .info-card{padding:6px 30px}
+  .info-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0}
+  .info-grid .cell{padding:22px 8px 22px 0}
+  .info-grid .cell .k{color:#2b303b;font-size:16px;margin-bottom:6px}
+  .info-grid .cell .v{color:var(--muted);font-size:15px}
+  .info-grid .row1 .cell{border-bottom:1px solid var(--border-2)}
+
+  .consent-card{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:22px 26px;border:1px solid var(--border);border-radius:12px;background:#fff;margin-bottom:14px;box-shadow:var(--shadow)}
+  .consent-card.hl{background:var(--accent-soft);border-color:#ecd6e6}
+  .consent-card .ct h3{margin:0 0 5px;font-size:17px;font-weight:700;color:#2b303b}
+  .consent-card .ct p{margin:0;color:var(--muted);font-size:14px;max-width:560px}
+  .consent-card .right{display:flex;align-items:center;gap:34px;flex:none}
+  .consent-card .right .divider{width:1px;height:34px;background:var(--border)}
+
+  .plan-search-row{display:flex;gap:14px;margin:6px 0 4px}
+
+  .group-label{font-weight:800;font-size:16px;margin:22px 0 12px;color:#2b303b}
+  .plan-grid{display:flex;flex-wrap:wrap;gap:16px}
+  .plan-card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);width:320px;overflow:hidden}
+  .plan-card .head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;gap:10px}
+  .plan-card .head .pname{font-size:19px;font-weight:800;color:#2b303b;cursor:pointer}
+  .plan-card .head .pname:hover{color:var(--accent)}
+  .plan-card.open{width:520px;max-width:100%}
+  .plan-card.open .head{background:var(--accent-soft-2);border-bottom:1px solid var(--border-2)}
+  .review-toggle{display:inline-flex;align-items:center;gap:7px;color:var(--accent);font-weight:700;font-size:14px;background:none;border:none}
+  .review-toggle svg{width:15px;height:15px;transition:.15s}
+  .plan-card.open .review-toggle svg{transform:rotate(180deg)}
+  .plan-detail{padding:6px 22px 20px}
+  .detail-table{width:100%;border-collapse:collapse;margin-bottom:16px}
+  .detail-table tr{border-bottom:1px solid var(--border-2)}
+  .detail-table tr:last-child{border-bottom:none}
+  .detail-table td{padding:13px 4px;font-size:14px;vertical-align:top}
+  .detail-table td.k{color:var(--muted)}
+  .detail-table td.v{text-align:right;font-weight:600;color:#2b303b}
+  .detail-actions{display:flex;gap:12px}
+
+  /* ---------- Consent detail (provider / transfer) ---------- */
+  .status-line{font-size:15px;color:#3a414f;margin-bottom:14px}
+  .toggle-card{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding:26px 28px;border:1px solid var(--border);border-radius:12px;background:#fff;box-shadow:var(--shadow);margin-bottom:26px}
+  .toggle-card h3{margin:0 0 6px;font-size:18px;font-weight:800;color:#2b303b}
+  .toggle-card p{margin:0;color:#3a414f;font-size:15px;line-height:1.5}
+  .toggle-card .note{color:var(--muted);font-size:14px;margin-top:14px}
+  .attest-row{margin:8px 0 24px}
+  .form-actions{display:flex;gap:14px;align-items:center}
+
+  /* dropdown multiselect */
+  .dd{border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:18px;max-width:940px}
+  .dd .dd-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:15px 18px;background:var(--accent-soft);cursor:pointer}
+  .dd .dd-head .ph{color:var(--muted);font-size:15px}
+  .dd .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{display:inline-flex;align-items:center;gap:8px;background:#f1e2ee;color:#5a2350;border-radius:16px;padding:6px 12px;font-size:14px;font-weight:600}
+  .chip button{border:none;background:none;color:#8a4f7e;display:flex;cursor:pointer}
+  .dd .caret{color:#5a5f6b;transition:.15s}
+  .dd.open .caret{transform:rotate(180deg)}
+  .dd .opts{border-top:1px solid var(--border-2)}
+  .opt-row{display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid #f1f1f5;cursor:pointer}
+  .opt-row:last-child{border-bottom:none}
+  .opt-row:hover{background:#fafafd}
+  .opt-row .obox{width:24px;height:24px;border-radius:6px;border:2px solid #c7cad3;background:#fff;flex:none;display:flex;align-items:center;justify-content:center}
+  .opt-row.sel .obox{background:var(--accent);border-color:var(--accent)}
+  .opt-row .obox svg{width:14px;height:14px;color:#fff;opacity:0}
+  .opt-row.sel .obox svg{opacity:1}
+  .opt-row .oname{font-size:16px;color:#2b303b}
+  .helper{color:#3a414f;font-size:15px;margin:14px 0;max-width:760px;line-height:1.5}
+  .muted-note{color:var(--muted);font-size:14px;font-style:italic;line-height:1.6;margin:4px 0 18px}
+
+  /* ---------- Plan detail full page ---------- */
+  .pd-card{padding:8px 30px}
+  .pd-grid{display:grid;grid-template-columns:1fr 1fr;gap:0}
+  .pd-grid .cell{padding:24px 8px}
+  .pd-grid .cell .k{color:var(--muted);font-size:15px;margin-bottom:8px}
+  .pd-grid .cell .v{color:#2b303b;font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .pd-grid .row1 .cell{border-bottom:1px solid var(--border-2)}
+  .pd-grid .cell .v svg{width:18px;height:18px;color:var(--green)}
+
+  /* ---------- Modal ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(28,33,52,.5);display:flex;align-items:center;justify-content:center;z-index:60;padding:24px;animation:fade .12s ease}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .modal{background:#fff;border-radius:16px;box-shadow:var(--shadow-lg);max-width:560px;width:100%;padding:34px 38px;text-align:center;animation:pop .14s ease}
+  @keyframes pop{from{transform:translateY(8px) scale(.98);opacity:.6}to{transform:none;opacity:1}}
+  .modal h3{margin:0 0 14px;font-size:20px;color:#2b303b;font-weight:800;line-height:1.35}
+  .modal p{margin:0 0 10px;color:#4a515e;font-size:15px;line-height:1.55}
+  .modal .left{text-align:left}
+  .modal ul{text-align:left;color:#4a515e;font-size:15px;line-height:1.7;margin:6px 0 0;padding-left:20px}
+  .modal .attest{margin:20px 0 8px;justify-content:center}
+  .modal .modal-actions{display:flex;gap:14px;justify-content:center;margin-top:24px}
+  .modal .refid{font-weight:700;color:#2b303b}
+
+  /* ---------- Toast ---------- */
+  .toast-wrap{position:fixed;right:26px;bottom:26px;z-index:90;display:flex;flex-direction:column;gap:12px}
+  .toast{display:flex;align-items:flex-start;gap:12px;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow-lg);padding:15px 16px;min-width:330px;max-width:400px;animation:slideIn .22s ease}
+  @keyframes slideIn{from{transform:translateX(20px);opacity:0}to{transform:none;opacity:1}}
+  .toast .tic{width:22px;height:22px;flex:none;color:var(--green)}
+  .toast .tic.red{color:var(--red)}
+  .toast .tbody b{display:block;font-size:14px;color:#2b303b;margin-bottom:2px}
+  .toast .tbody span{font-size:13px;color:var(--muted)}
+  .toast .tclose{margin-left:auto;border:none;background:none;color:var(--muted-2);font-size:18px;line-height:1;cursor:pointer;padding:0 2px}
+
+  .footnote{margin-top:48px;padding-top:18px;border-top:1px solid var(--border);color:var(--muted-2);font-size:12px;line-height:1.6}
+
+  @media (max-width:780px){
+    .sidebar{display:none}
+    .main{padding:22px 18px 60px}
+    .info-grid{grid-template-columns:1fr}
+    .pd-grid{grid-template-columns:1fr}
+    .consent-card{flex-direction:column;align-items:flex-start}
+  }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <div id="modal-root"></div>
+  <div class="toast-wrap" id="toast-root"></div>
+
+<script>
+/* =========================================================================
+   Jefferson Health Plans — Member Consent Portal (CMS-0057 demo)
+   Internal CSR tool. Vanilla JS single-page prototype. No backend.
+   ========================================================================= */
+
+/* ---------- Inline SVG assets ---------- */
+const ICON = {
+  logo: `<svg class="logo" viewBox="0 0 34 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M17 1 32 7v12c0 9.4-6.3 15.8-15 18C8.3 34.8 2 28.4 2 19V7L17 1Z" fill="#1d2b5e"/>
+    <path d="M17 1 32 7v12c0 9.4-6.3 15.8-15 18V1Z" fill="#2b62b8" opacity=".55"/>
+    <path d="M21 11h-7v2.4h2.3V24c0 1.2-.5 1.8-1.5 1.8-.8 0-1.4-.4-1.9-1.1l-1.7 1.5c.9 1.2 2.1 1.8 3.8 1.8 2.6 0 4-1.5 4-4.2V13.4H21V11Z" fill="#fff"/>
+  </svg>`,
+  user: `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="#e7e9ef"/><circle cx="12" cy="9.5" r="3.4" fill="#9aa0ab"/><path d="M5.5 19a6.5 6.5 0 0 1 13 0" fill="#9aa0ab"/></svg>`,
+  home: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 3 10.5V21h6v-6h6v6h6V10.5L12 3Z"/></svg>`,
+  faq: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.4 2.3c-.8.3-1.4 1-1.4 1.9v.3" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor" stroke="none"/></svg>`,
+  logout: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>`,
+  back: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>`,
+  search: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>`,
+  check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>`,
+  caret: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`,
+  caretUp: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>`,
+  circleCheck: `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#2fb24a"/><path d="M7.5 12.5l3 3 6-6.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  x: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>`,
+  family: `<svg viewBox="0 0 200 200" fill="#ffffff"><circle cx="60" cy="60" r="22"/><circle cx="120" cy="50" r="26"/><circle cx="150" cy="95" r="16"/><rect x="34" y="86" width="52" height="80" rx="24"/><rect x="92" y="80" width="58" height="92" rx="28"/><rect x="138" y="114" width="34" height="56" rx="16"/></svg>`
+};
+
+/* ---------- Data ---------- */
+function freshMembers(){
+  return {
+    '123456': {
+      id:'123456', name:'John Doe', first:'John', poss:'his', subj:'he',
+      phone:'(215) 555-0142', dob:'05/22/1985', email:'johndoe@gmail.com',
+      provider:{ status:'opted-in' },              // Provider Access API (opt-out model)
+      plans:[
+        { id:'aetna',   name:'Aetna',   group:'opted-in',  granted:'May 5, 2025', transfer:'May 7, 2025', status:'Completed', revoked:'—',          updated:'Jan 5, 2025' },
+        { id:'cigna',   name:'Cigna',   group:'opted-in',  granted:'May 5, 2025', transfer:'May 7, 2025', status:'Completed', revoked:'—',          updated:'Jan 5, 2025' },
+        { id:'xyz',     name:'XYZ',     group:'opted-in',  granted:'Apr 2, 2025', transfer:'Apr 4, 2025', status:'Completed', revoked:'—',          updated:'Apr 2, 2025' },
+        { id:'bcbs',    name:'Blue Cross Blue Shield', short:'Blue cross shield', group:'opted-out', granted:'May 5, 2025', transfer:'May 7, 2025', status:'Completed', revoked:'Nov 5, 2025', updated:'—' },
+        { id:'medicare',name:'Medicare',group:'expired',   granted:'Jan 8, 2024', transfer:'Jan 9, 2024', status:'Completed', revoked:'—',          updated:'Jan 8, 2024' }
+      ]
+    },
+    '456789': {
+      id:'456789', name:'Sarah Brown', first:'Sarah', poss:'her', subj:'she',
+      phone:'(609) 555-0188', dob:'12/15/1970', email:'sarah.brown@gmail.com',
+      provider:{ status:'opted-out' },
+      plans:[
+        { id:'humana',  name:'Humana',  group:'opted-in',  granted:'Mar 3, 2025', transfer:'Mar 5, 2025', status:'Completed', revoked:'—', updated:'Mar 3, 2025' },
+        { id:'aetna2',  name:'Aetna',   group:'opted-out', granted:'Feb 1, 2025', transfer:'Feb 3, 2025', status:'Completed', revoked:'Apr 1, 2025', updated:'—' }
+      ]
+    }
+  };
+}
+
+/* available plans for the Payer-to-Payer transfer picker */
+const TRANSFER_PLANS = ['Medicare Advantage','Blue Cross Blue Shield','Cigna','Humana','Aetna'];
+
+/* ---------- App state ---------- */
+const state = {
+  view:'login',
+  memberId:null,
+  search:'',
+  searchSubmitted:false,
+  planSearch:'',
+  reviewOpen:null,          // plan id whose Review Consent is expanded
+  // provider consent draft
+  providerDraft:null,       // 'opted-in' | 'opted-out'
+  providerAttest:false,
+  // transfer draft
+  ddOpen:false,
+  transferSel:[],           // selected plan names
+  transferAttest:false
+};
+let MEMBERS = freshMembers();
+const root = document.getElementById('root');
+
+/* ---------- Helpers ---------- */
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function member(){return MEMBERS[state.memberId];}
+function aggTransferStatus(m){return m.plans.some(p=>p.group==='opted-in')?'opted-in':'opted-out';}
+function highlight(text,q){
+  if(!q) return esc(text);
+  const i = text.toLowerCase().indexOf(q.toLowerCase());
+  if(i<0) return esc(text);
+  return esc(text.slice(0,i))+'<mark>'+esc(text.slice(i,i+q.length))+'</mark>'+esc(text.slice(i+q.length));
+}
+function go(view){ state.view=view; render(); window.scrollTo({top:0,behavior:'instant'}); }
+
+/* ---------- Shell ---------- */
+function shell(inner){
+  const m = member();
+  return `
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">${ICON.logo}<div class="wordmark"><b>Jefferson</b><span>Health Plans</span></div></div>
+      <div class="admin">${ICON.user}<span>Admin</span></div>
+    </div>
+    <div class="body">
+      <aside class="sidebar">
+        <button class="nav-item ${state.view==='home'?'active':''}" data-action="home">${ICON.home}<span>Home</span></button>
+        <button class="nav-item muted" data-action="faq">${ICON.faq}<span>FAQ</span></button>
+        <div class="spacer"></div>
+        <button class="nav-item nav-logout" data-action="logout">${ICON.logout}<span>Logout</span></button>
+      </aside>
+      <main class="main">${inner}</main>
+    </div>
+  </div>`;
+}
+
+/* ---------- Login ---------- */
+function viewLogin(){
+  return `
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="brand">${ICON.logo}<div class="wordmark"><b>Jefferson</b><span>Health Plans</span></div></div>
+      <h1>Member Consent Portal</h1>
+      <p class="tag">Customer Service · Sign in to assist a member</p>
+      <div class="field"><label>Agent ID</label><input id="f-user" value="csr.admin" /></div>
+      <div class="field"><label>Password</label><input id="f-pass" type="password" value="••••••••" /></div>
+      <button class="btn btn-primary" data-action="signin">Sign in</button>
+      <div class="login-foot">Internal demo environment · CMS-0057 Interoperability &amp; Prior Authorization<br/>For training use only — contains no real member data.</div>
+    </div>
+  </div>`;
+}
+
+/* ---------- Home / search ---------- */
+function viewHome(){
+  const q = state.search.trim();
+  let list='';
+  if(state.searchSubmitted && q){
+    const matches = Object.values(MEMBERS).filter(m=>
+      m.name.toLowerCase().includes(q.toLowerCase()) ||
+      m.id.includes(q) || m.phone.includes(q));
+    list = `
+      <div class="results-head"><span class="label">Results (<b>${matches.length}</b>)</span>
+        <button class="link-accent" data-action="clear-search">Clear Search</button></div>
+      ${matches.length? matches.map(m=>memberRow(m,q)).join('') :
+        `<div class="member-row"><div class="who">No members match “${esc(q)}”.</div></div>`}`;
+  } else {
+    list = `
+      <div class="results-head"><span class="label">Recent members</span>
+        <button class="link-accent" data-action="clear-search">Clear Search</button></div>
+      ${Object.values(MEMBERS).map(m=>memberRow(m,'')).join('')}`;
+  }
+  return shell(`
+    <div class="hero">
+      <div class="deco">${ICON.family}</div>
+      <div class="hero-copy">
+        <div class="hi"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0" stroke-linecap="round"/></svg><span>Hello, Admin</span></div>
+        <p>Start by searching for a member to assist.</p>
+      </div>
+      <svg class="wave" viewBox="0 0 1200 60" preserveAspectRatio="none"><path d="M0 60 C 300 10 900 10 1200 55 L1200 60 Z" fill="#f5f6f9"/></svg>
+    </div>
+    <h2 class="section" style="margin-top:6px">Member search</h2>
+    <div class="search-row">
+      <div class="search-input">${ICON.search}
+        <input id="m-search" placeholder="Search by member ID, name or phone number" value="${esc(state.search)}" />
+      </div>
+      <button class="btn btn-primary search-btn" data-action="do-search">Search</button>
+    </div>
+    ${list}
+  `);
+}
+function memberRow(m,q){
+  return `<div class="member-row ${q&&m.name.toLowerCase().includes(q.toLowerCase())?'hl':''}">
+    <div class="who"><span class="nm">${highlight(m.name,q)}</span> <span class="meta">· ${esc(m.id)} · ${esc(m.dob)}</span></div>
+    <button class="link-accent" data-action="profile" data-id="${m.id}">View profile</button>
+  </div>`;
+}
+
+/* ---------- Member profile ---------- */
+function viewProfile(){
+  const m = member();
+  const prov = m.provider.status;
+  const agg = aggTransferStatus(m);
+  const pq = state.planSearch.trim().toLowerCase();
+
+  const grouped = {'opted-in':[],'opted-out':[],'expired':[]};
+  m.plans.forEach(p=>{ if(!pq || p.name.toLowerCase().includes(pq)) grouped[p.group].push(p); });
+
+  let manage='';
+  if(pq){
+    const all=[...grouped['opted-in'],...grouped['opted-out'],...grouped['expired']];
+    manage = `<div class="results-head"><span class="label">Results (<b>${all.length}</b>)</span>
+        <button class="link-accent" data-action="clear-plansearch">Clear</button></div>
+      ${all.length? all.map(planCard).join('') : `<div class="member-row"><div class="who">No plans match “${esc(state.planSearch)}”.</div></div>`}`;
+  } else {
+    manage = ['opted-in','opted-out','expired'].map(g=>{
+      if(!grouped[g].length) return '';
+      const label = g==='opted-in'?'Opted - in':g==='opted-out'?'Opted - out':'Expired';
+      return `<div class="group-label">${label}</div><div class="plan-grid">${grouped[g].map(planCard).join('')}</div>`;
+    }).join('');
+  }
+
+  return shell(`
+    <div class="page-head">
+      <button class="back-btn" data-action="home">${ICON.back}</button>
+      <h1>${esc(m.name)}'s profile</h1>
+    </div>
+
+    <div class="card info-card">
+      <div class="info-grid">
+        <div class="row1 cell"><div class="k">Name</div><div class="v">${esc(m.name)}</div></div>
+        <div class="row1 cell"><div class="k">Member ID</div><div class="v">${esc(m.id)}</div></div>
+        <div class="row1 cell"><div class="k">Phone number</div><div class="v">${esc(m.phone)}</div></div>
+        <div class="cell"><div class="k">DOB</div><div class="v">${esc(m.dob)}</div></div>
+        <div class="cell"><div class="k">Email</div><div class="v">${esc(m.email)}</div></div>
+        <div class="cell"></div>
+      </div>
+    </div>
+
+    <h2 class="section">Member consents</h2>
+    <div class="consent-card">
+      <div class="ct">
+        <h3>Share data with healthcare providers</h3>
+        <p>Manage how ${esc(m.name)}'s health information is shared with in-network providers.</p>
+      </div>
+      <div class="right">
+        <span class="pill"><span class="dot ${prov==='opted-in'?'green':'red'}"></span>${prov==='opted-in'?'Opted - in':'Opted - out'}</span>
+        <div class="divider"></div>
+        <button class="link-accent" data-action="provider">Review consent</button>
+      </div>
+    </div>
+    <div class="consent-card">
+      <div class="ct">
+        <h3>Transfer data from other health plans</h3>
+        <p>Manage how ${esc(m.name)}'s health information is transferred from other health plans.</p>
+      </div>
+      <div class="right">
+        <span class="pill"><span class="dot ${agg==='opted-in'?'green':'red'}"></span>${agg==='opted-in'?'Opted - in':'Opted - out'}</span>
+        <div class="divider"></div>
+        <button class="link-accent" data-action="transfer-start">${agg==='opted-in'?'Review consent':'Change consent'}</button>
+      </div>
+    </div>
+
+    <h2 class="section">Manage member consents</h2>
+    <div class="plan-search-row">
+      <div class="search-input">${ICON.search}
+        <input id="p-search" placeholder="Search by plans" value="${esc(state.planSearch)}" />
+      </div>
+      <button class="btn btn-primary search-btn" data-action="do-plansearch">Search</button>
+    </div>
+    <div style="margin-top:6px">${manage}</div>
+
+    <button class="btn btn-ghost btn-sm" style="margin-top:30px" data-action="transfer-start">+ Start a new data transfer</button>
+
+    ${footnote()}
+  `);
+}
+
+function planCard(p){
+  const open = state.reviewOpen===p.id;
+  const statusDot = p.group==='opted-in'?'green':p.group==='opted-out'?'red':'amber';
+  let detail='';
+  if(open){
+    detail = `<div class="plan-detail">
+      <table class="detail-table">
+        <tr><td class="k">Date of consent granted</td><td class="v">${esc(p.granted)}</td></tr>
+        <tr><td class="k">Last date data transfer was initiated</td><td class="v">${esc(p.transfer)}</td></tr>
+        <tr><td class="k">Status of transfer</td><td class="v"><span class="pill"><span class="dot green"></span>${esc(p.status)}</span></td></tr>
+        <tr><td class="k">Last date of revocation</td><td class="v">${esc(p.revoked)}</td></tr>
+        <tr><td class="k">Date of updated Opt-in</td><td class="v">${esc(p.updated)}</td></tr>
+      </table>
+      <div class="detail-actions">
+        ${p.group==='opted-in'
+          ? `<button class="btn btn-ghost btn-sm" data-action="ask-optout" data-id="${p.id}">Opt-out</button>`
+          : `<button class="btn btn-primary btn-sm" data-action="optin-plan" data-id="${p.id}">Update Opt-in</button>`}
+        <button class="btn btn-ghost btn-sm" data-action="plan-detail" data-id="${p.id}">View transfer status</button>
+      </div>
+    </div>`;
+  }
+  return `<div class="plan-card ${open?'open':''}">
+    <div class="head">
+      <span class="pname" data-action="plan-detail" data-id="${p.id}">${esc(p.name)}</span>
+      <button class="review-toggle" data-action="review" data-id="${p.id}">Review Consent ${ICON.caret}</button>
+    </div>
+    ${detail}
+  </div>`;
+}
+
+/* ---------- Provider consent (opt-out model) ---------- */
+function viewProvider(){
+  const m=member();
+  const draft = state.providerDraft || m.provider.status;
+  const isIn = draft==='opted-in';
+  return shell(`
+    <div class="page-head">
+      <button class="back-btn" data-action="profile" data-id="${m.id}">${ICON.back}</button>
+      <h1>Share data with healthcare providers</h1>
+    </div>
+    <div class="status-line">${esc(m.name)}'s data sharing status</div>
+    <div class="toggle-card">
+      <div>
+        <h3>${isIn?'Opted-in with in-network providers':'Opted-out with in-network providers'}</h3>
+        <p>${isIn
+            ? `${esc(m.name)} is currently sharing ${m.poss} data with in-network providers to help coordinate ${m.poss} care.`
+            : `${esc(m.name)} is currently blocking all healthcare providers from accessing ${m.poss} health data through ${m.poss} insurance.`}</p>
+        <div class="note">${isIn
+            ? `${esc(m.name)} can change ${m.poss} data sharing preferences at any time. If ${m.subj} opts out now, ${m.subj} can opt back in later.`
+            : `If ${esc(m.name)} opts out, ${m.poss} providers may not have access to ${m.poss} health information through Jefferson Health Plans. ${esc(m.name)} can change this at any time.`}</div>
+      </div>
+      <button class="toggle ${isIn?'on':''}" data-action="toggle-provider"><span class="knob"></span></button>
+    </div>
+    <div class="attest-row">
+      <label class="chk">
+        <input type="checkbox" ${state.providerAttest?'checked':''} data-action="provider-attest" />
+        <span class="box">${ICON.check}</span>
+        <span>I confirm this request was initiated by ${esc(m.name)} and accurately reflects their intent.</span>
+      </label>
+    </div>
+    <div class="form-actions">
+      <button class="btn ${state.providerAttest?'btn-primary':'btn-disabled'}" data-action="provider-confirm" ${state.providerAttest?'':'disabled'}>Confirm</button>
+    </div>
+    ${footnote()}
+  `);
+}
+
+/* ---------- Transfer (payer-to-payer, opt-in model) ---------- */
+function viewTransfer(){
+  const m=member();
+  const sel = state.transferSel;
+  return shell(`
+    <div class="page-head">
+      <button class="back-btn" data-action="profile" data-id="${m.id}">${ICON.back}</button>
+      <h1>Transfer data from other health plans</h1>
+    </div>
+    <h2 class="section" style="margin-top:4px">Which health plans should we request data from?</h2>
+    <p class="sub">Select a health plan to update or start data transfer.</p>
+
+    <div class="dd ${state.ddOpen?'open':''}">
+      <div class="dd-head" data-action="dd-toggle">
+        ${sel.length? `<div class="chips">${sel.map(s=>`<span class="chip">${esc(s)}<button data-action="chip-remove" data-name="${esc(s)}">${ICON.x}</button></span>`).join('')}</div>`
+                   : `<span class="ph">Select a plan</span>`}
+        <span class="caret">${ICON.caret}</span>
+      </div>
+      ${state.ddOpen? `<div class="opts">${TRANSFER_PLANS.map(p=>`
+        <div class="opt-row ${sel.includes(p)?'sel':''}" data-action="opt-toggle" data-name="${esc(p)}">
+          <span class="obox">${ICON.check}</span><span class="oname">${esc(p)}</span>
+        </div>`).join('')}</div>` : ''}
+    </div>
+
+    <p class="helper">Don't see the requested health plan? To add another health plan, please
+      <a href="#" data-action="add-plan">click here.</a> It will be reviewed before requesting any data.</p>
+    <div class="muted-note">${esc(m.name)} can change this preference anytime before the transfer starts.<br/>
+      Once a transfer starts, it can't be stopped — but ${esc(m.name)} will see the status before that happens.</div>
+
+    <div class="attest-row">
+      <label class="chk">
+        <input type="checkbox" ${state.transferAttest?'checked':''} data-action="transfer-attest" />
+        <span class="box">${ICON.check}</span>
+        <span>I confirm this request was initiated by ${esc(m.name)} and accurately reflects their intent.</span>
+      </label>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" data-action="profile" data-id="${m.id}">Cancel</button>
+      <button class="btn ${(state.transferAttest && sel.length)?'btn-primary':'btn-disabled'}" data-action="transfer-continue" ${(state.transferAttest && sel.length)?'':'disabled'}>Continue</button>
+    </div>
+    ${footnote()}
+  `);
+}
+
+/* ---------- Plan detail full page ---------- */
+function viewPlanDetail(){
+  const m=member();
+  const p=m.plans.find(x=>x.id===state.reviewOpen) || m.plans[0];
+  const optedIn = p.group==='opted-in';
+  return shell(`
+    <div class="page-head">
+      <button class="back-btn" data-action="profile" data-id="${m.id}">${ICON.back}</button>
+      <h1>${esc(p.name)} <span style="color:${optedIn?'#2fb24a':'#df322e'};font-size:14px;">●</span></h1>
+    </div>
+    <div class="card pd-card">
+      <div class="pd-grid">
+        <div class="row1 cell"><div class="k">Date of transfer initiated</div><div class="v">${esc(p.granted)}</div></div>
+        <div class="row1 cell"><div class="k">Last date data transfer was initiated</div><div class="v">${esc(p.transfer)}</div></div>
+        <div class="cell"><div class="k">Status of transfer</div><div class="v">${ICON.circleCheck}${esc(p.status)}</div></div>
+        <div class="cell"><div class="k">Consent state</div><div class="v"><span class="dot ${optedIn?'green':'red'}"></span>${optedIn?'Opted - in':p.group==='expired'?'Expired':'Opted - out'}</div></div>
+      </div>
+    </div>
+    <div class="form-actions" style="margin-top:24px">
+      <button class="btn btn-ghost" data-action="profile" data-id="${m.id}">Return to dashboard</button>
+      ${optedIn
+        ? `<button class="btn btn-primary" data-action="ask-optout" data-id="${p.id}">Opt-out</button>`
+        : `<button class="btn btn-primary" data-action="optin-plan" data-id="${p.id}">Opt-in</button>`}
+    </div>
+    ${footnote()}
+  `);
+}
+
+function footnote(){
+  return `<div class="footnote">Demonstration portal for Jefferson Health Plans customer-service training.
+   Implements member data-sharing consent under CMS-0057 (CMS Interoperability &amp; Prior Authorization Final Rule):
+   Provider Access (opt-out) and Payer-to-Payer (opt-in) data exchange. No real member data is shown.</div>`;
+}
+
+/* ---------- Modals ---------- */
+function openModal(html){ document.getElementById('modal-root').innerHTML=`<div class="overlay" data-action="overlay">${html}</div>`; }
+function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
+
+function modalOptOut(planId){
+  const p=member().plans.find(x=>x.id===planId);
+  openModal(`<div class="modal" data-stop>
+    <h3>Confirm Opt-out of data sharing</h3>
+    <p>You are about to opt the member out of data sharing with<br/><b>Health Plan: ${esc(p.name)}</b></p>
+    <p class="left" style="margin-top:14px">If this consent is opted out:</p>
+    <ul><li>The health plan will no longer receive new health data</li>
+        <li>Previously shared data will remain unchanged</li></ul>
+    <div style="margin-top:18px;font-weight:600;color:#2b303b">Admin Attestation (Required)</div>
+    <label class="chk attest"><input type="checkbox" id="optout-attest" /><span class="box">${ICON.check}</span>
+      <span>I confirm that the member explicitly requested this opt-out during this interaction.</span></label>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" data-action="close-modal">Cancel</button>
+      <button class="btn btn-disabled btn-sm" id="optout-confirm" data-action="optout-confirm" data-id="${planId}" disabled>Confirm to Opt-out</button>
+    </div>
+  </div>`);
+}
+function modalTransferSubmitted(ref){
+  openModal(`<div class="modal" data-stop>
+    <p>This transfer request is submitted and will be reviewed.</p>
+    <p class="refid">Reference ID : ${esc(ref)}</p>
+    <p class="left" style="margin-top:14px">What happens next :</p>
+    <ul><li>The request is saved for processing</li>
+        <li>Data exchange will happen within the next 24 hours</li>
+        <li>The member may be contacted if needed</li></ul>
+    <div class="modal-actions"><button class="btn btn-primary btn-sm" data-action="transfer-done">Ok</button></div>
+  </div>`);
+}
+
+/* ---------- Toast ---------- */
+function toast(title,msg,kind){
+  const el=document.createElement('div');
+  el.className='toast';
+  el.innerHTML=`<span class="tic ${kind==='red'?'red':''}">${kind==='red'?ICON.x:ICON.circleCheck}</span>
+    <div class="tbody"><b>${esc(title)}</b><span>${esc(msg)}</span></div>
+    <button class="tclose" data-action="toast-close">&times;</button>`;
+  document.getElementById('toast-root').appendChild(el);
+  setTimeout(()=>{ el.style.transition='opacity .3s'; el.style.opacity='0'; setTimeout(()=>el.remove(),300); }, 4200);
+}
+
+/* ---------- Render ---------- */
+function render(){
+  switch(state.view){
+    case 'login':       root.innerHTML=viewLogin(); break;
+    case 'home':        root.innerHTML=viewHome(); break;
+    case 'profile':     root.innerHTML=viewProfile(); break;
+    case 'provider':    root.innerHTML=viewProvider(); break;
+    case 'transfer':    root.innerHTML=viewTransfer(); break;
+    case 'plan-detail': root.innerHTML=viewPlanDetail(); break;
+    default:            root.innerHTML=viewHome();
+  }
+}
+
+/* ---------- Event handling (delegation) ---------- */
+document.addEventListener('click', e=>{
+  const t = e.target.closest('[data-action]');
+  // overlay click closes modal
+  if(e.target.classList && e.target.classList.contains('overlay')){ closeModal(); return; }
+  if(!t) return;
+  const a = t.dataset.action, id = t.dataset.id, name = t.dataset.name;
+
+  switch(a){
+    /* nav */
+    case 'signin': go('home'); break;
+    case 'home': resetProfileDrafts(); go('home'); break;
+    case 'logout': MEMBERS=freshMembers(); Object.assign(state,{view:'login',memberId:null,search:'',searchSubmitted:false}); render(); break;
+    case 'faq': toast('FAQ','Help center is not part of this demo.'); break;
+
+    /* search */
+    case 'do-search': { const i=document.getElementById('m-search'); state.search=i?i.value:''; state.searchSubmitted=true; render(); break; }
+    case 'clear-search': state.search=''; state.searchSubmitted=false; render(); break;
+    case 'profile': state.memberId=id||state.memberId; resetProfileDrafts(); go('profile'); break;
+
+    /* plan search */
+    case 'do-plansearch': { const i=document.getElementById('p-search'); state.planSearch=i?i.value:''; render(); break; }
+    case 'clear-plansearch': state.planSearch=''; render(); break;
+
+    /* provider consent */
+    case 'provider': state.providerDraft=member().provider.status; state.providerAttest=false; go('provider'); break;
+    case 'toggle-provider': state.providerDraft = (state.providerDraft||member().provider.status)==='opted-in'?'opted-out':'opted-in'; render(); break;
+    case 'provider-confirm': {
+      const m=member(); m.provider.status=state.providerDraft||m.provider.status;
+      const lbl=m.provider.status==='opted-in'?'OPTED IN':'OPTED OUT';
+      resetProfileDrafts(); go('profile');
+      toast('Consent updated', `Share with providers is now ${lbl}.`, m.provider.status==='opted-in'?'':'red');
+      break;
+    }
+
+    /* transfer flow */
+    case 'transfer-start': Object.assign(state,{ddOpen:true,transferSel:[],transferAttest:false}); go('transfer'); break;
+    case 'dd-toggle': state.ddOpen=!state.ddOpen; render(); break;
+    case 'opt-toggle': {
+      const s=state.transferSel; const i=s.indexOf(name);
+      if(i>=0) s.splice(i,1); else s.push(name); render(); break;
+    }
+    case 'chip-remove': { const i=state.transferSel.indexOf(name); if(i>=0) state.transferSel.splice(i,1); render(); break; }
+    case 'add-plan': e.preventDefault(); toast('Request noted','Adding a new plan would be sent for review.'); break;
+    case 'transfer-continue': {
+      if(!(state.transferAttest && state.transferSel.length)) break;
+      const ref='PTR-'+Math.floor(1000+Math.random()*9000)+'-'+Math.floor(100+Math.random()*900);
+      modalTransferSubmitted(ref);
+      break;
+    }
+    case 'transfer-done': {
+      const m=member();
+      state.transferSel.forEach(nm=>{
+        let p=m.plans.find(x=>x.name.toLowerCase()===nm.toLowerCase());
+        if(p){ p.group='opted-in'; p.updated=today(); }
+        else { m.plans.push({id:'p'+Date.now()+Math.floor(Math.random()*99), name:nm, group:'opted-in', granted:today(), transfer:'Pending', status:'In progress', revoked:'—', updated:today()}); }
+      });
+      const names=state.transferSel.join(', ');
+      closeModal(); resetProfileDrafts(); go('profile');
+      toast('Transfer requested', `Data request sent to: ${names}.`);
+      break;
+    }
+
+    /* manage plans */
+    case 'review': state.reviewOpen = state.reviewOpen===id?null:id; render(); break;
+    case 'plan-detail': state.reviewOpen=id; go('plan-detail'); break;
+    case 'ask-optout': modalOptOut(id); break;
+    case 'optout-confirm': {
+      if(t.disabled) break;
+      const m=member(); const p=m.plans.find(x=>x.id===id);
+      if(p){ p.group='opted-out'; p.revoked=today(); p.updated='—'; }
+      closeModal();
+      if(state.view==='plan-detail'){ render(); } else render();
+      toast('Consent updated', `${p?p.name:'Plan'} is now OPTED OUT.`, 'red');
+      break;
+    }
+    case 'optin-plan': {
+      const m=member(); const p=m.plans.find(x=>x.id===id);
+      if(p){ p.group='opted-in'; p.updated=today(); p.revoked='—'; }
+      if(state.view==='plan-detail'){ go('profile'); } else render();
+      toast('Consent updated', `${p?p.name:'Plan'} is now OPTED IN.`);
+      break;
+    }
+
+    /* modal misc */
+    case 'close-modal': closeModal(); break;
+    case 'toast-close': t.closest('.toast').remove(); break;
+  }
+});
+
+/* checkbox change handling */
+document.addEventListener('change', e=>{
+  if(e.target.id==='optout-attest'){
+    const btn=document.getElementById('optout-confirm');
+    if(btn){ btn.disabled=!e.target.checked; btn.classList.toggle('btn-disabled',!e.target.checked); btn.classList.toggle('btn-primary',e.target.checked); }
+    return;
+  }
+  const t=e.target.closest('[data-action]'); if(!t) return;
+  if(t.dataset.action==='provider-attest'){ state.providerAttest=t.checked; render(); }
+  if(t.dataset.action==='transfer-attest'){ state.transferAttest=t.checked; render(); }
+});
+
+/* live filtering as you type on member search */
+document.addEventListener('input', e=>{
+  if(e.target.id==='m-search'){ state.search=e.target.value; state.searchSubmitted = e.target.value.trim().length>0; liveSearchUpdate(); }
+});
+function liveSearchUpdate(){
+  // re-render but preserve focus/caret on the search input
+  const active=document.activeElement; const isSearch=active && active.id==='m-search';
+  const pos=isSearch?active.selectionStart:null;
+  render();
+  if(isSearch){ const el=document.getElementById('m-search'); if(el){ el.focus(); try{el.setSelectionRange(pos,pos);}catch(_){} } }
+}
+
+function resetProfileDrafts(){ state.reviewOpen=null; state.planSearch=''; state.providerDraft=null; state.providerAttest=false; state.ddOpen=false; state.transferSel=[]; state.transferAttest=false; }
+function today(){ const d=new Date(); return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+
+/* ---------- Boot ---------- */
+render();
+</script>
+</body>
+</html>
