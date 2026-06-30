@@ -270,6 +270,11 @@
   .tour-b{border:none;border-radius:20px;padding:8px 18px;font-size:14px;font-weight:700;background:var(--navy);color:#fff;cursor:pointer}
   .tour-b:hover{background:var(--navy-deep)}
   .tour-b.ghost{background:#fff;color:var(--accent);border:1.5px solid var(--accent)}
+  .tour-choices{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+  .tour-choice{display:flex;flex-direction:column;gap:3px;text-align:left;border:1px solid var(--border);border-radius:10px;padding:13px 14px;background:#fff;cursor:pointer;transition:.12s}
+  .tour-choice:hover{border-color:var(--accent);background:var(--accent-soft)}
+  .tour-choice b{font-size:14px;color:#1f2430}
+  .tour-choice span{font-size:12.5px;color:var(--muted);line-height:1.4}
 </style>
 </head>
 <body>
@@ -590,9 +595,9 @@ function viewProvider(){
             ? `${esc(m.name)} can change ${m.poss} data sharing preferences at any time. If ${m.subj} opts out now, ${m.subj} can opt back in later.`
             : `If ${esc(m.name)} opts out, ${m.poss} providers may not have access to ${m.poss} health information through Jefferson Health Plans. ${esc(m.name)} can change this at any time.`}</div>
       </div>
-      <button class="toggle ${isIn?'on':''}" data-action="toggle-provider"><span class="knob"></span></button>
+      <button class="toggle ${isIn?'on':''}" data-action="toggle-provider" data-tour="provider-toggle"><span class="knob"></span></button>
     </div>
-    <div class="attest-row">
+    <div class="attest-row" data-tour="provider-attest">
       <label class="chk">
         <input type="checkbox" ${state.providerAttest?'checked':''} data-action="provider-attest" />
         <span class="box">${ICON.check}</span>
@@ -600,7 +605,7 @@ function viewProvider(){
       </label>
     </div>
     <div class="form-actions">
-      <button class="btn ${state.providerAttest?'btn-primary':'btn-disabled'}" data-action="provider-confirm" ${state.providerAttest?'':'disabled'}>Confirm</button>
+      <button class="btn ${state.providerAttest?'btn-primary':'btn-disabled'}" data-action="provider-confirm" data-tour="provider-confirm" ${state.providerAttest?'':'disabled'}>Confirm</button>
     </div>
     ${footnote()}
   `);
@@ -618,7 +623,7 @@ function viewTransfer(){
     <h2 class="section" style="margin-top:4px">Which health plans should we request data from?</h2>
     <p class="sub">Select a health plan to update or start data transfer.</p>
 
-    <div class="dd ${state.ddOpen?'open':''}">
+    <div class="dd ${state.ddOpen?'open':''}" data-tour="transfer-picker">
       <div class="dd-head" data-action="dd-toggle">
         ${sel.length? `<div class="chips">${sel.map(s=>`<span class="chip">${esc(s)}<button data-action="chip-remove" data-name="${esc(s)}">${ICON.x}</button></span>`).join('')}</div>`
                    : `<span class="ph">Select a plan</span>`}
@@ -635,7 +640,7 @@ function viewTransfer(){
     <div class="muted-note">${esc(m.name)} can change this preference anytime before the transfer starts.<br/>
       Once a transfer starts, it can't be stopped — but ${esc(m.name)} will see the status before that happens.</div>
 
-    <div class="attest-row">
+    <div class="attest-row" data-tour="transfer-attest">
       <label class="chk">
         <input type="checkbox" ${state.transferAttest?'checked':''} data-action="transfer-attest" />
         <span class="box">${ICON.check}</span>
@@ -644,7 +649,7 @@ function viewTransfer(){
     </div>
     <div class="form-actions">
       <button class="btn btn-ghost" data-action="profile" data-id="${m.id}">Cancel</button>
-      <button class="btn ${(state.transferAttest && sel.length)?'btn-primary':'btn-disabled'}" data-action="transfer-continue" ${(state.transferAttest && sel.length)?'':'disabled'}>Continue</button>
+      <button class="btn ${(state.transferAttest && sel.length)?'btn-primary':'btn-disabled'}" data-action="transfer-continue" data-tour="transfer-continue" ${(state.transferAttest && sel.length)?'':'disabled'}>Continue</button>
     </div>
     ${footnote()}
   `);
@@ -751,7 +756,7 @@ document.addEventListener('click', e=>{
 
   switch(a){
     /* nav */
-    case 'signin': go('home'); if(!TOUR.seen){ setTimeout(tourStart,350); } break;
+    case 'signin': go('home'); break;
     case 'home': resetProfileDrafts(); go('home'); break;
     case 'logout': tourEnd(); MEMBERS=freshMembers(); Object.assign(state,{view:'login',memberId:null,search:'',searchSubmitted:false}); render(); break;
     case 'faq': toast('FAQ','Help center is not part of this demo.'); break;
@@ -765,6 +770,7 @@ document.addEventListener('click', e=>{
       toast('Demo reset','Sample data restored to its original state.');
       break;
     case 'tour-start': tourStart(); break;
+    case 'tour-flow': TOUR.begin(t.dataset.flow); break;
     case 'tour-next': tourNext(); break;
     case 'tour-prev': tourPrev(); break;
     case 'tour-end': tourEnd(); break;
@@ -871,48 +877,94 @@ function liveSearchUpdate(){
 function resetProfileDrafts(){ state.reviewOpen=null; state.planSearch=''; state.providerDraft=null; state.providerAttest=false; state.ddOpen=false; state.transferSel=[]; state.transferAttest=false; }
 function today(){ const d=new Date(); return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
 
-/* ---------- Guided tour ---------- */
+/* ---------- Guided tour: two task walkthroughs ---------- */
+function tourMember(){ state.memberId='123456'; state.reviewOpen=null; state.planSearch=''; state.providerDraft=null; state.providerAttest=false; state.ddOpen=false; state.transferSel=[]; state.transferAttest=false; }
+
 const TOUR = {
-  seen:false, active:false, i:0,
-  steps:[
-    { center:true, title:'Welcome to the consent portal', body:'This quick tour shows how a customer-service rep manages member data-sharing consent under CMS-0057. Use Next and Back to move through it — you can end anytime.' },
-    { view:'home', sel:'[data-tour="search"]', place:'bottom', title:'1 · Find a member', body:'Search by member ID, name, or phone number. Recent members are listed just below for quick access.' },
-    { view:'home', sel:'[data-tour="view-profile"]', place:'left', title:'2 · Open a profile', body:'Select &ldquo;View profile&rdquo; to pull up a member and start assisting them.' },
-    { view:'profile', sel:'[data-tour="info"]', place:'bottom', title:'3 · Member details', body:'A member&rsquo;s identity and contact information appear at the top of their profile.' },
-    { view:'profile', sel:'[data-tour="provider-consent"]', place:'bottom', title:'4 · Share with providers (opt-out)', body:'Under CMS-0057&rsquo;s Provider Access rule, members share data with in-network providers by default — and may choose to opt OUT here.' },
-    { view:'profile', sel:'[data-tour="transfer-consent"]', place:'top', title:'5 · Transfer from other plans (opt-in)', body:'Under the Payer-to-Payer rule, members must opt IN before JHP requests their records from a previous health plan.' },
-    { view:'profile', sel:'[data-tour="manage"]', place:'bottom', title:'6 · Manage each plan', body:'Prior plans are grouped by Opted-in, Opted-out, and Expired. Use &ldquo;Review Consent&rdquo; to see history or opt a plan out — every change requires a rep attestation that the member requested it.' },
-    { view:'home', sel:'[data-tour="reset"]', place:'right', title:'7 · Reset the demo', body:'Practiced enough? Click &ldquo;Reset demo&rdquo; any time to restore the original sample data and start fresh.' },
-    { center:true, title:'You&rsquo;re all set', body:'That&rsquo;s the tour. Click around freely — this is a training environment with fictional data only, so nothing you do affects real members.' }
-  ],
-  prep(s){
-    if(s.view==='home'){ state.view='home'; }
-    else if(s.view==='profile'){ state.memberId='123456'; state.reviewOpen=null; state.planSearch=''; state.view='profile'; }
-    render();
+  active:false, flow:null, i:0,
+  flows:{
+    provider:[
+      { setup(){ MEMBERS['123456'].provider.status='opted-in'; tourMember(); state.view='profile'; render(); },
+        sel:'[data-tour="provider-consent"]', place:'bottom',
+        title:'Provider Access consent', body:'<b>Goal: opt this member out of sharing with providers.</b><br>Right now John Doe is <b>Opted-in</b>, so in-network providers can see his data by default. The rep opens this consent to change it.' },
+      { setup(){ tourMember(); state.providerDraft='opted-in'; state.view='provider'; render(); },
+        sel:'[data-tour="provider-toggle"]', place:'left',
+        title:'Step 1 — Review the status', body:'The consent screen shows the current status: opted-in with in-network providers. The rep flips this toggle to opt the member out.' },
+      { setup(){ tourMember(); state.providerDraft='opted-out'; state.view='provider'; render(); },
+        sel:'[data-tour="provider-toggle"]', place:'left',
+        title:'Step 2 — Toggle to opt out', body:'The status now reads <b>Opted-out</b> — the member is blocking provider access to the data Jefferson Health Plans holds.' },
+      { setup(){ tourMember(); state.providerDraft='opted-out'; state.providerAttest=false; state.view='provider'; render(); },
+        sel:'[data-tour="provider-attest"]', place:'bottom',
+        title:'Step 3 — Attest the request', body:'Every consent change requires the rep to confirm the member personally requested it. The rep checks this attestation box.' },
+      { setup(){ tourMember(); state.providerDraft='opted-out'; state.providerAttest=true; state.view='provider'; render(); },
+        sel:'[data-tour="provider-confirm"]', place:'top',
+        title:'Step 4 — Confirm', body:'With the attestation checked, the <b>Confirm</b> button activates. Clicking it saves the opt-out.' },
+      { setup(){ MEMBERS['123456'].provider.status='opted-out'; tourMember(); state.view='profile'; render(); toast('Consent updated','Share with providers is now OPTED OUT.','red'); },
+        sel:'[data-tour="provider-consent"]', place:'bottom',
+        title:'Done — member opted out', body:'The consent now shows <b>Opted-out</b> (red) and a confirmation appears. The member has been removed from Provider Access sharing. They can opt back in the same way at any time.' }
+    ],
+    payer:[
+      { setup(){ tourMember(); state.view='profile'; render(); },
+        sel:'[data-tour="transfer-consent"]', place:'top',
+        title:'Payer-to-Payer consent', body:'<b>Goal: request this member&rsquo;s records from a previous health plan.</b><br>Unlike Provider Access, the member must <b>opt in</b> first. The rep opens this consent to start the transfer.' },
+      { setup(){ tourMember(); Object.assign(state,{ddOpen:true,transferSel:[],view:'transfer'}); render(); },
+        sel:'[data-tour="transfer-picker"]', place:'bottom',
+        title:'Step 1 — Choose the prior plan', body:'On the transfer screen the rep selects which previous health plan(s) to request the member&rsquo;s records from.' },
+      { setup(){ tourMember(); Object.assign(state,{ddOpen:true,transferSel:['Humana'],view:'transfer'}); render(); },
+        sel:'[data-tour="transfer-picker"]', place:'bottom',
+        title:'Step 2 — Plan selected', body:'Here we&rsquo;ve selected <b>Humana</b>. More than one plan can be added if the member was covered by several.' },
+      { setup(){ tourMember(); Object.assign(state,{ddOpen:false,transferSel:['Humana'],transferAttest:false,view:'transfer'}); render(); },
+        sel:'[data-tour="transfer-attest"]', place:'top',
+        title:'Step 3 — Attest the request', body:'As with any consent change, the rep attests that the member requested this opt-in.' },
+      { setup(){ tourMember(); Object.assign(state,{ddOpen:false,transferSel:['Humana'],transferAttest:true,view:'transfer'}); render(); },
+        sel:'[data-tour="transfer-continue"]', place:'top',
+        title:'Step 4 — Submit the request', body:'With a plan chosen and the attestation checked, <b>Continue</b> submits the data-exchange request.' },
+      { setup(){ tourMember(); Object.assign(state,{ddOpen:false,transferSel:['Humana'],transferAttest:true,view:'transfer'}); render(); modalTransferSubmitted('PTR-4821-310'); },
+        sel:'.modal', place:'bottom',
+        title:'Done — request submitted', body:'JHP confirms the request with a reference ID. The prior plan is contacted securely and the data exchange completes within 24 hours — no further action is needed from the member. That completes the flow.' }
+    ]
+  },
+  start(){ this.active=true; this.flow=null; this.i=0; this.intro(); },
+  intro(){
+    closeModal();
+    const o=tourOverlay();
+    o.innerHTML=`<div class="tour-dim"></div>
+      <div class="tour-tip tour-center" style="width:390px">
+        <div class="tour-tip-head"><strong>Guided walkthroughs</strong><button class="tour-x" data-action="tour-end" aria-label="Close">&times;</button></div>
+        <p>Step through a complete consent task the way a rep would. Pick a flow:</p>
+        <div class="tour-choices">
+          <button class="tour-choice" data-action="tour-flow" data-flow="provider"><b>1 · Opt out of Provider Access</b><span>Remove a member from data-sharing with in-network providers.</span></button>
+          <button class="tour-choice" data-action="tour-flow" data-flow="payer"><b>2 · Payer-to-Payer data exchange</b><span>Request a member&rsquo;s records from a previous health plan (opt-in).</span></button>
+        </div>
+      </div>`;
+  },
+  begin(flow){ if(!this.flows[flow]) return; MEMBERS=freshMembers(); state.memberId='123456'; this.active=true; this.flow=flow; this.i=0; this.show(); },
+  next(){ const st=this.flows[this.flow]; if(!st) return; if(this.i>=st.length-1){ this.end(); return; } this.i++; this.show(); },
+  prev(){ if(this.i>0){ this.i--; this.show(); } else { this.flow=null; this.intro(); } },
+  end(){ this.active=false; this.flow=null; const o=document.getElementById('tour-overlay'); if(o) o.remove(); closeModal(); },
+  show(){
+    closeModal();
+    const st=this.flows[this.flow]; const s=st[this.i]; s.setup();
+    const o=tourOverlay(); const total=st.length; const isLast=this.i===total-1;
+    const label=this.flow==='provider'?'Provider opt-out':'Payer-to-Payer';
+    const foot=`<div class="tour-foot"><span class="tour-prog">${label} · ${this.i+1}/${total}</span><div class="tour-btns"><button class="tour-b ghost" data-action="tour-prev">Back</button><button class="tour-b" data-action="tour-next">${isLast?'Finish':'Next'}</button></div></div>`;
+    const card=`<div class="tour-tip-head"><strong>${s.title}</strong><button class="tour-x" data-action="tour-end" aria-label="End">&times;</button></div><p>${s.body}</p>${foot}`;
+    const el = s.sel ? document.querySelector(s.sel) : null;
+    if(el){
+      if(el.scrollIntoView){ try{ el.scrollIntoView({block:'center',inline:'nearest'}); }catch(_){} }
+      const r=el.getBoundingClientRect(); const pad=8;
+      o.innerHTML=`<div class="tour-spot" style="left:${r.left-pad}px;top:${r.top-pad}px;width:${r.width+pad*2}px;height:${r.height+pad*2}px"></div><div class="tour-tip" id="tour-tip">${card}</div>`;
+      tourPlace(document.getElementById('tour-tip'), r, s.place||'bottom');
+    } else {
+      o.innerHTML=`<div class="tour-dim"></div><div class="tour-tip tour-center" id="tour-tip">${card}</div>`;
+    }
   }
 };
-function tourStart(){ TOUR.active=true; TOUR.seen=true; TOUR.i=0; tourShow(); }
-function tourNext(){ if(TOUR.i>=TOUR.steps.length-1){ tourEnd(); return; } TOUR.i++; tourShow(); }
-function tourPrev(){ if(TOUR.i>0){ TOUR.i--; tourShow(); } }
-function tourEnd(){ TOUR.active=false; const o=document.getElementById('tour-overlay'); if(o) o.remove(); }
-function tourShow(){
-  const s=TOUR.steps[TOUR.i];
-  TOUR.prep(s);
-  let o=document.getElementById('tour-overlay');
-  if(!o){ o=document.createElement('div'); o.id='tour-overlay'; document.body.appendChild(o); }
-  const total=TOUR.steps.length;
-  const foot=`<div class="tour-foot"><span class="tour-prog">${TOUR.i+1} / ${total}</span><div class="tour-btns">${TOUR.i>0?'<button class="tour-b ghost" data-action="tour-prev">Back</button>':''}<button class="tour-b" data-action="tour-next">${TOUR.i===total-1?'Finish':'Next'}</button></div></div>`;
-  const card=`<div class="tour-tip-head"><strong>${s.title}</strong><button class="tour-x" data-action="tour-end" aria-label="End tour">&times;</button></div><p>${s.body}</p>${foot}`;
-  const el = (!s.center && s.sel) ? document.querySelector(s.sel) : null;
-  if(el){
-    if(el.scrollIntoView){ try{ el.scrollIntoView({block:'center',inline:'nearest'}); }catch(_){} }
-    const r=el.getBoundingClientRect(); const pad=8;
-    o.innerHTML=`<div class="tour-spot" style="left:${r.left-pad}px;top:${r.top-pad}px;width:${r.width+pad*2}px;height:${r.height+pad*2}px"></div><div class="tour-tip" id="tour-tip">${card}</div>`;
-    tourPlace(document.getElementById('tour-tip'), r, s.place||'bottom');
-  } else {
-    o.innerHTML=`<div class="tour-dim"></div><div class="tour-tip tour-center" id="tour-tip">${card}</div>`;
-  }
-}
+function tourOverlay(){ let o=document.getElementById('tour-overlay'); if(!o){ o=document.createElement('div'); o.id='tour-overlay'; document.body.appendChild(o); } return o; }
+function tourStart(){ TOUR.start(); }
+function tourNext(){ TOUR.next(); }
+function tourPrev(){ TOUR.prev(); }
+function tourEnd(){ TOUR.end(); }
 function tourPlace(tip,r,place){
   const m=14, tw=tip.offsetWidth, th=tip.offsetHeight, vw=window.innerWidth, vh=window.innerHeight;
   let top,left;
@@ -926,7 +978,7 @@ function tourPlace(tip,r,place){
   if(left<12) left=12;
   tip.style.top=top+'px'; tip.style.left=left+'px';
 }
-window.addEventListener('resize', ()=>{ if(TOUR.active) tourShow(); });
+window.addEventListener('resize', ()=>{ if(TOUR.active && TOUR.flow) TOUR.show(); });
 
 /* ---------- Boot ---------- */
 render();
